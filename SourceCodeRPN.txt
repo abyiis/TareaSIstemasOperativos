@@ -1,45 +1,104 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <math.h>
 
-#define MAX_STACK 100
+#define MAXSTACK 100
 
-double stack[MAX_STACK];
+double stack[MAXSTACK];
 int sp = 0; // stack pointer
 
-void push(double v) { stack[sp++] = v; }
-double pop() { return stack[--sp]; }
+void push(double val) {
+    if (sp < MAXSTACK)
+        stack[sp++] = val;
+    else {
+        printf("Error: pila llena\n");
+        exit(1);
+    }
+}
+
+double pop() {
+    if (sp > 0)
+        return stack[--sp];
+    else {
+        printf("Error: pila vacía\n");
+        exit(1);
+    }
+}
+
+void show_stack() {
+    printf("Pila: ");
+    for (int i = 0; i < sp; i++)
+        printf("%.6g ", stack[i]);
+    printf("\n");
+}
 
 int main() {
-    char line[256];
-    printf("Calculadora RPN (q para salir)\n");
+    char input[100];
+    double op1, op2;
 
+    printf("Calculadora RPN\n");
     while (1) {
         printf("> ");
-        if (!fgets(line, sizeof(line), stdin)) break;
+        if (!fgets(input, sizeof(input), stdin))
+            break;
+        
+        if (input[0] == 'q')
+            break;
 
-        if (strcmp(line, "q\n") == 0) break;
-
-        char *tok = strtok(line, " \t\n");
-        while (tok) {
-            double a, b;
-            if (sscanf(tok, "%lf", &a) == 1) {
-                push(a);
-            } else if (strcmp(tok, "+") == 0) {
-                b = pop(); a = pop(); push(a + b);
-            } else if (strcmp(tok, "-") == 0) {
-                b = pop(); a = pop(); push(a - b);
-            } else if (strcmp(tok, "*") == 0) {
-                b = pop(); a = pop(); push(a * b);
-            } else if (strcmp(tok, "/") == 0) {
-                b = pop(); a = pop(); push(a / b);
-            } else {
-                printf("Token inválido: %s\n", tok);
-            }
-            tok = strtok(NULL, " \t\n");
+        if (isdigit(input[0]) || 
+            (input[0] == '-' && isdigit(input[1]))) {
+            push(atof(input));
+        } 
+        else if (strcmp(input, "+\n") == 0) {
+            op2 = pop(); op1 = pop(); push(op1 + op2);
+        } 
+        else if (strcmp(input, "-\n") == 0) {
+            op2 = pop(); op1 = pop(); push(op1 - op2);
+        } 
+        else if (strcmp(input, "*\n") == 0) {
+            op2 = pop(); op1 = pop(); push(op1 * op2);
+        } 
+        else if (strcmp(input, "/\n") == 0) {
+            op2 = pop(); op1 = pop();
+            if (op2 == 0) {
+                printf("Error: division por cero\n");
+                push(op1); push(op2);
+            } else push(op1 / op2);
+        } 
+        else if (strcmp(input, "^\n") == 0) {
+            op2 = pop(); op1 = pop(); push(pow(op1, op2));
+        } 
+        else if (strncmp(input, "sqrt", 4) == 0) {
+            op1 = pop(); 
+            if (op1 < 0) {
+                printf("Error: raiz de negativo\n");
+                push(op1);
+            } else push(sqrt(op1));
+        } 
+        else if (strncmp(input, "dup", 3) == 0) {
+            if (sp > 0) push(stack[sp-1]);
+            else printf("Error: pila vacía\n");
+        } 
+        else if (strncmp(input, "swap", 4) == 0) {
+            if (sp >= 2) {
+                double tmp = stack[sp-1];
+                stack[sp-1] = stack[sp-2];
+                stack[sp-2] = tmp;
+            } else printf("Error: menos de dos elementos\n");
+        } 
+        else if (strncmp(input, "clear", 5) == 0) {
+            sp = 0;
+        } 
+        else if (strcmp(input, "=\n") == 0) {
+            printf("Resultado: %.10g\n", pop());
+        } 
+        else {
+            printf("Entrada no válida\n");
         }
 
-        if (sp > 0) printf("Top: %g\n", stack[sp - 1]);
+        show_stack();
     }
 
     return 0;
